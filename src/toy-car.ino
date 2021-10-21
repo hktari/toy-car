@@ -7,8 +7,8 @@ enum CarState
     MOVING
 };
 
-const int START_PIN = 0;
-const int FRONT_LIGHTS_PINS[] = {1, 2};
+const uint8_t START_PIN = 0;
+const uint8_t FRONT_LIGHTS_PINS[] = {1, 2};
 
 CarState car_state = CarState::OFF;
 

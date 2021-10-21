@@ -46,5 +46,5 @@ target_link_libraries(toy-car-tests
         arduino_mock
         )
 
-enable_testing()
-add_test(toy-car-tests-nam test_all)
+# enable_testing()
+# add_test(toy-car-tests-nam test_all)

@@ -10,10 +10,10 @@ protected:
     void SetUp() override
     {
         car_state = CarState::OFF;
-        // ArduinoMock *arduinoMock = arduinoMockInstance();
-        // arduinoMock->digitalWrite(START_PIN, LOW);
-        // arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
-        // arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
+        ArduinoMock *arduinoMock = arduinoMockInstance();
+        arduinoMock->digitalWrite(START_PIN, LOW);
+        arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
+        arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
         // setup();
     }
 

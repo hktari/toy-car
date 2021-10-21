@@ -1,2 +1,2 @@
 ./build.sh
-build/toy-car-tests.exe
+build/toy-car-tests.exe --gtest_break_on_failure=0

@@ -1,3 +1,4 @@
 {
-    "cmake.sourceDirectory": "${workspaceFolder}/tests"
+    "cmake.sourceDirectory": "${workspaceFolder}/tests",
+    "gtest-adapter.debugConfig":"Debug"
 }

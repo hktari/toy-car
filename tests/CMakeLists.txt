@@ -27,18 +27,18 @@ FetchContent_Declare(arduino-mock
 FetchContent_MakeAvailable(arduino-mock)
 
 # add the executable
-add_executable(toy-car toy-car.cxx)
+add_executable(toy-car toy-car-tests.cxx)
 
 target_include_directories(toy-car
-        PRIVATE "_deps/arduino-mock-src/include"
-        PUBLIC "_deps/arduino-mock-src/include/arduino-mock"
-        INTERFACE "_deps/arduino-mock-src/include/arduino-mock"
+        PRIVATE "../build/_deps/arduino-mock-src/include"
+        PUBLIC "../build/_deps/arduino-mock-src/include/arduino-mock"
+        INTERFACE "../build/_deps/arduino-mock-src/include/arduino-mock"
         )
 target_include_directories(toy-car
-        PUBLIC "_deps/googletest-src/googlemock/include"
-        INTERFACE "_deps/googletest-src/googlemock/include"
-        PUBLIC "_deps/googletest-src/googletest/include"
-        INTERFACE "_deps/googletest-src/googlemock/include"
+        PUBLIC "../build/_deps/googletest-src/googlemock/include"
+        INTERFACE "../build/_deps/googletest-src/googlemock/include"
+        PUBLIC "../build/_deps/googletest-src/googletest/include"
+        INTERFACE "../build/_deps/googletest-src/googlemock/include"
         )        
 
 

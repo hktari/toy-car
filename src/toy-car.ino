@@ -1,17 +1,3 @@
-#include "ard-mock.h"
-
-// TODO: remove this
-void setup();
-void loop();
-int main()
-{
-    setup();
-    while (true)
-    {
-        loop();
-    }
-    return 0;
-}
 
 enum CAR_STATE
 {

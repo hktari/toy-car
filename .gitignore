@@ -1,7 +1,2 @@
-/CMakeFiles
-/bin
-/lib
-CMakeCache.txt
-cmake_install.cmake
+/build
 Makefile
-/_deps

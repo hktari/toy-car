@@ -1,3 +1,4 @@
+#include "Arduino.h"
 
 enum CAR_STATE
 {
@@ -11,8 +12,10 @@ const int FRONT_LIGHTS_PINS[] = {1, 2};
 
 CAR_STATE car_state = CAR_STATE::OFF;
 
+#include <iostream>
 void setup()
 {
+    std::cout << "HELLO from .ino" << std::endl;
 }
 
 void loop()
@@ -36,5 +39,5 @@ void loop()
 
         car_state = CAR_STATE::RUNNING;
     }
-    else if(car_state == CAR_STATE::RUNNING && last_move_time)
+    // else if(car_state == CAR_STATE::RUNNING && last_move_time)
 }

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 # set the project name
-project(toy-car VERSION 1.0)
+project(toy-car-tests VERSION 1.0)
 
 include(FetchContent)
 
@@ -27,14 +27,14 @@ FetchContent_Declare(arduino-mock
 FetchContent_MakeAvailable(arduino-mock)
 
 # add the executable
-add_executable(toy-car toy-car-tests.cxx)
+add_executable(toy-car-tests test_all.cxx)
 
-target_include_directories(toy-car
+target_include_directories(toy-car-tests
         PRIVATE "../build/_deps/arduino-mock-src/include"
         PUBLIC "../build/_deps/arduino-mock-src/include/arduino-mock"
         INTERFACE "../build/_deps/arduino-mock-src/include/arduino-mock"
         )
-target_include_directories(toy-car
+target_include_directories(toy-car-tests
         PUBLIC "../build/_deps/googletest-src/googlemock/include"
         INTERFACE "../build/_deps/googletest-src/googlemock/include"
         PUBLIC "../build/_deps/googletest-src/googletest/include"
@@ -42,6 +42,8 @@ target_include_directories(toy-car
         )        
 
 
-target_link_libraries(toy-car
-    arduino_mock
-)
+target_link_libraries(toy-car-tests
+        arduino_mock
+        )
+
+add_test(toy-car-tests-nam test_all)

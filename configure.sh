@@ -1,2 +1,2 @@
  mkdir -p build
- cmake -Bbuild/ -S tests/CMakeLists.txt -G "MinGW Makefiles"
+ cmake -Bbuild/ -S tests/ -G "MinGW Makefiles"

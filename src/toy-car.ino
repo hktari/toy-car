@@ -1,6 +1,6 @@
 #include "Arduino.h"
 
-enum CAR_STATE
+enum CarState
 {
     OFF,
     RUNNING,
@@ -10,12 +10,10 @@ enum CAR_STATE
 const int START_PIN = 0;
 const int FRONT_LIGHTS_PINS[] = {1, 2};
 
-CAR_STATE car_state = CAR_STATE::OFF;
+CarState car_state = CarState::OFF;
 
-#include <iostream>
 void setup()
 {
-    std::cout << "HELLO from .ino" << std::endl;
 }
 
 void loop()
@@ -30,14 +28,14 @@ void loop()
         2. The car plays break sfx when turned into a L after having moved forward
 
     */
-    if (digitalRead(START_PIN) == HIGH && car_state == CAR_STATE::OFF)
+    if (digitalRead(START_PIN) == HIGH && car_state == CarState::OFF)
     {
         digitalWrite(FRONT_LIGHTS_PINS[0], HIGH);
         digitalWrite(FRONT_LIGHTS_PINS[1], HIGH);
         
         // TODO: play sfx
 
-        car_state = CAR_STATE::RUNNING;
+        car_state = CarState::RUNNING;
     }
-    // else if(car_state == CAR_STATE::RUNNING && last_move_time)
+    // else if(car_state == CarState::RUNNING && last_move_time)
 }

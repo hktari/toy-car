@@ -1,24 +1,35 @@
-// #include "../src/toy-car.ino"
+#include "../src/toy-car.ino"
 #include "gtest/gtest.h"
 #include "arduino-mock/Arduino.h"
 
 using ::testing::Return;
 
-TEST(digitalRead, 2) {
-  ArduinoMock* arduinoMock = arduinoMockInstance();
-  EXPECT_CALL(*arduinoMock, digitalRead(2)).WillOnce(Return(1));
-  
-  digitalRead(2);
-  releaseArduinoMock();
-}
+class ToyCar : public testing::Test
+{
+protected:
+    void SetUp() override
+    {
+        car_state = CarState::OFF;
+        // ArduinoMock *arduinoMock = arduinoMockInstance();
+        // arduinoMock->digitalWrite(START_PIN, LOW);
+        // arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
+        // arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
+        // setup();
+    }
 
-TEST(delay, normal) {
-  ArduinoMock* arduinoMock = arduinoMockInstance();
-  EXPECT_CALL(*arduinoMock, delay(1));
-  delay(1);
-  releaseArduinoMock();
-}
+    // void TearDown() override{}
+    // {
+    // }
+};
 
+TEST_F(ToyCar, TurnsOn)
+{
+    // ArduinoMock *arduinoMock = arduinoMockInstance();
+    // arduinoMock->digitalWrite(START_PIN, HIGH);
+    // loop();
+    // EXPECT_EQ(car_state, CarState::RUNNING) << "Car state should be 'RUNNING'";
+    // releaseArduinoMock();
+}
 
 // int main()
 // {

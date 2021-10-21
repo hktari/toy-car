@@ -1,3 +1,13 @@
+cmake_minimum_required(VERSION 3.10)
+# set the project name
+project(toy-car VERSION 1.0)
+
+include(FetchContent)
+
+# specify the C++ standard
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 FetchContent_Declare(Catch2
         GIT_REPOSITORY https://github.com/catchorg/Catch2.git
         GIT_TAG v2.11.1)
@@ -16,16 +26,22 @@ FetchContent_Declare(arduino-mock
 
 FetchContent_MakeAvailable(arduino-mock)
 
-add_executable(main
-        main.cpp
-        tests.cpp)
+# add the executable
+add_executable(toy-car toy-car.cxx)
 
-target_link_libraries(tests
-        Catch2::Catch2
-        arduino_mock)
+target_include_directories(toy-car
+        PRIVATE "_deps/arduino-mock-src/include"
+        PUBLIC "_deps/arduino-mock-src/include/arduino-mock"
+        INTERFACE "_deps/arduino-mock-src/include/arduino-mock"
+        )
+target_include_directories(toy-car
+        PUBLIC "_deps/googletest-src/googlemock/include"
+        INTERFACE "_deps/googletest-src/googlemock/include"
+        PUBLIC "_deps/googletest-src/googletest/include"
+        INTERFACE "_deps/googletest-src/googlemock/include"
+        )        
 
-target_compile_features(tests PUBLIC cxx_std_11)
-set_target_properties(tests PROPERTIES CXX_EXTENSIONS OFF)
 
-add_test(NAME tests
-         COMMAND tests)
+target_link_libraries(toy-car
+    arduino_mock
+)

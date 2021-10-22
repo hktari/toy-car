@@ -4,6 +4,8 @@ project(toy-car-tests VERSION 1.0)
 
 include(FetchContent)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 # specify the C++ standard
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
@@ -42,9 +44,13 @@ target_include_directories(toy-car-tests
         )        
 
 
-target_link_libraries(toy-car-tests
-        arduino_mock
-        )
+target_link_libraries(toy-car-tests arduino_mock)
+
+
+# TODO: use the same MakeFiles as in the arduino mock exmaple ?
+target_link_libraries(toy-car-tests -LC:/Users/bkamn/source/arduino/toy-car/build/lib/libgtest.a)
+target_link_libraries(toy-car-tests -LC:/Users/bkamn/source/arduino/toy-car/build/lib/libgtest_main.a)
+target_link_libraries(toy-car-tests -LC:/Users/bkamn/source/arduino/toy-car/build/lib/libgmock.a)
 
 # enable_testing()
 # add_test(toy-car-tests-nam test_all)

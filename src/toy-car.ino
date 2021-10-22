@@ -1,4 +1,5 @@
-#include "Arduino.h"
+// #include "Arduino.h"
+#include "arduino-mock/Arduino.h"
 
 enum CarState
 {
@@ -7,8 +8,8 @@ enum CarState
     MOVING
 };
 
-const uint8_t START_PIN = 0;
-const uint8_t FRONT_LIGHTS_PINS[] = {1, 2};
+const uint8_t START_PIN = 0x0;
+const uint8_t FRONT_LIGHTS_PINS[] = {0x1, 0x2};
 
 CarState car_state = CarState::OFF;
 
@@ -18,6 +19,7 @@ void setup()
 
 void loop()
 {
+    digitalRead(0);
     /*
     -- START CAR --
         1. The car turns on lights and plays engine rev sfx when held in hand
@@ -28,14 +30,14 @@ void loop()
         2. The car plays break sfx when turned into a L after having moved forward
 
     */
-    if (digitalRead(START_PIN) == HIGH && car_state == CarState::OFF)
-    {
-        digitalWrite(FRONT_LIGHTS_PINS[0], HIGH);
-        digitalWrite(FRONT_LIGHTS_PINS[1], HIGH);
-        
-        // TODO: play sfx
+    // if (digitalRead(START_PIN) == HIGH && car_state == CarState::OFF)
+    // {
+    //     digitalWrite(FRONT_LIGHTS_PINS[0], HIGH);
+    //     digitalWrite(FRONT_LIGHTS_PINS[1], HIGH);
 
-        car_state = CarState::RUNNING;
-    }
+    //     // TODO: play sfx
+
+    //     car_state = CarState::RUNNING;
+    // }
     // else if(car_state == CarState::RUNNING && last_move_time)
 }

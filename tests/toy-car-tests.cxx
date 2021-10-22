@@ -11,24 +11,28 @@ protected:
     {
         car_state = CarState::OFF;
         ArduinoMock *arduinoMock = arduinoMockInstance();
-        arduinoMock->digitalWrite(START_PIN, LOW);
-        arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
-        arduinoMock->digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
-        // setup();
+        // digitalWrite(START_PIN, LOW);
+        // digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
+        // digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
+        setup();
+        
+        releaseArduinoMock();
     }
 
-    // void TearDown() override{}
-    // {
-    // }
+    void TearDown() override
+    {
+        releaseArduinoMock();
+    }
 };
 
 TEST_F(ToyCar, TurnsOn)
 {
-    // ArduinoMock *arduinoMock = arduinoMockInstance();
-    // arduinoMock->digitalWrite(START_PIN, HIGH);
-    // loop();
+    ArduinoMock *arduinoMock = arduinoMockInstance();
+    EXPECT_CALL(*arduinoMock, digitalRead(0)).WillOnce(Return(1));
+    loop();
     // EXPECT_EQ(car_state, CarState::RUNNING) << "Car state should be 'RUNNING'";
-    // releaseArduinoMock();
+    
+    releaseArduinoMock();
 }
 
 // int main()

@@ -28,9 +28,14 @@ protected:
 TEST_F(ToyCar, TurnsOn)
 {
     ArduinoMock *arduinoMock = arduinoMockInstance();
-    EXPECT_CALL(*arduinoMock, digitalRead(0)).WillOnce(Return(1));
+    
+    EXPECT_CALL(*arduinoMock, digitalRead(START_PIN)).WillOnce(Return(HIGH));
+    EXPECT_CALL(*arduinoMock, digitalWrite(FRONT_LIGHTS_PINS[0], HIGH));
+    EXPECT_CALL(*arduinoMock, digitalWrite(FRONT_LIGHTS_PINS[1], HIGH));
+    
     loop();
-    // EXPECT_EQ(car_state, CarState::RUNNING) << "Car state should be 'RUNNING'";
+    
+    EXPECT_EQ(car_state, CarState::RUNNING) << "Car state should be 'RUNNING'";    
     
     releaseArduinoMock();
 }

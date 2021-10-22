@@ -1,4 +1,6 @@
 // #include "Arduino.h"
+#pragma once
+
 #include "arduino-mock/Arduino.h"
 
 enum CarState
@@ -8,10 +10,14 @@ enum CarState
     MOVING
 };
 
+const unsigned long TURN_OFF_DELAY = 5000; // ms
+
 const uint8_t START_PIN = 0x0;
 const uint8_t FRONT_LIGHTS_PINS[] = {0x1, 0x2};
 
 CarState car_state = CarState::OFF;
+
+unsigned long last_move_timestamp = 0;
 
 void setup()
 {
@@ -29,14 +35,29 @@ void loop()
         2. The car plays break sfx when turned into a L after having moved forward
 
     */
-    if (digitalRead(START_PIN) == HIGH && car_state == CarState::OFF)
+    if (digitalRead(START_PIN) == HIGH)
     {
-        digitalWrite(FRONT_LIGHTS_PINS[0], HIGH);
-        digitalWrite(FRONT_LIGHTS_PINS[1], HIGH);
+        last_move_timestamp = millis();
 
-        // TODO: play sfx
+        if (car_state == CarState::OFF)
+        {
+            digitalWrite(FRONT_LIGHTS_PINS[0], HIGH);
+            digitalWrite(FRONT_LIGHTS_PINS[1], HIGH);
 
-        car_state = CarState::RUNNING;
+            // TODO: play sfx
+
+            car_state = CarState::RUNNING;
+        }
     }
+    else
+    {
+        if (millis() - last_move_timestamp >= TURN_OFF_DELAY)
+        {
+            car_state = CarState::OFF;
+            digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
+            digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
+        }
+    }
+
     // else if(car_state == CarState::RUNNING && last_move_time)
 }

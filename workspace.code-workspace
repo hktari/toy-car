@@ -3,6 +3,12 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "..\\samples\\arduino-mock"
+		},
+		{
+			"path": "..\\..\\cpp\\cmake-tutorial"
 		}
 	],
 	"settings": {

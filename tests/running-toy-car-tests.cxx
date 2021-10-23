@@ -35,6 +35,7 @@ TEST_F(RunningToyCar, TurnsOffAfterDelay)
         EXPECT_CALL(*arduinoMock, digitalWrite(FRONT_LIGHTS_PINS[0], LOW));
         EXPECT_CALL(*arduinoMock, digitalWrite(FRONT_LIGHTS_PINS[1], LOW));
 
+        // TODO: fork arduino mock repo and change millis() implementation so this mock works 
         EXPECT_CALL(*arduinoMock, millis()).WillOnce(Return(0)).WillOnce(Return(TURN_OFF_DELAY));
 
         loop();

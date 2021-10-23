@@ -51,7 +51,8 @@ void loop()
     }
     else
     {
-        if (millis() - last_move_timestamp >= TURN_OFF_DELAY)
+        time_t time = millis();
+        if (time - last_move_timestamp >= TURN_OFF_DELAY)
         {
             car_state = CarState::OFF;
             digitalWrite(FRONT_LIGHTS_PINS[0], LOW);

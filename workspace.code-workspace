@@ -35,6 +35,14 @@
 			]
 		},
 		"gtest-adapter.debugTitle": "debug-test",
-		"gtest-adapter.mainConfig": "debug-test"
+		"gtest-adapter.mainConfig": "debug-test",
+		"files.associations": {
+			"array": "cpp",
+			"*.tcc": "cpp",
+			"random": "cpp",
+			"numeric": "cpp",
+			"ratio": "cpp",
+			"utility": "cpp"
+		}
 	}
 }

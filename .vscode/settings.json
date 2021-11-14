@@ -1,4 +1,7 @@
 {
     "cmake.sourceDirectory": "${workspaceFolder}/tests",
-    "gtest-adapter.debugConfig":"Debug"
+    "gtest-adapter.debugConfig": "Debug",
+    "files.associations": {
+        "*.tpp": "cpp"
+    }
 }

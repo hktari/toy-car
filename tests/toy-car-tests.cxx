@@ -13,7 +13,7 @@ protected:
         car_state = CarState::OFF;
         last_move_timestamp = 0;
 
-        ArduinoMock *arduinoMock = arduinoMockInstance();
+        // ArduinoMock *arduinoMock = arduinoMockInstance();
         // digitalWrite(START_PIN, LOW);
         // digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
         // digitalWrite(FRONT_LIGHTS_PINS[1], LOW);

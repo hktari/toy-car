@@ -27,6 +27,10 @@ CarState car_state = CarState::OFF;
 
 unsigned long last_move_timestamp = 0;
 
+
+
+#pragma region MPU6050
+
 #define INTERRUPT_PIN 2 // use pin 2 on Arduino Uno & most boards
 #define LED_PIN 13      // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 bool blinkState = false;
@@ -56,6 +60,9 @@ void dmpDataReady()
 {
     mpuInterrupt = true;
 }
+
+#pragma endregion MPU6050
+
 
 void setup()
 {
@@ -125,6 +132,12 @@ void setup()
     pinMode(LED_PIN, OUTPUT);
 }
 
+
+const byte msmrmntCnt = 10;
+const byte timespan = 1.5; // s
+
+byte yawAccelMeas[msmrmntCnt] = {}
+
 void readaccel()
 {
     // if programming failed, don't try to do anything
@@ -145,6 +158,7 @@ void readaccel()
         Serial.print(aaWorld.y);
         Serial.print("\t");
         Serial.println(aaWorld.z);
+
 
         mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
         Serial.print("ypr\t");

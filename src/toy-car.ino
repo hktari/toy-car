@@ -6,10 +6,9 @@
 #include <AceRoutine.h>
 using namespace ace_routine;
 
-#include "I2Cdev.h"
-#include "MPU6050_6Axis_MotionApps_V6_12.h"
 #include <math.h>
-#include <Fastwire.h>
+#include <Wire.h>
+#include <MPU6050.h>
 
 typedef unsigned long time_t;
 
@@ -71,118 +70,12 @@ unsigned long last_move_timestamp = 0;
 #define THRESHOLD_STEP_BTN_PIN 4
 
 #define INTERRUPT_PIN 2 // use pin 2 on Arduino Uno & most boards
-#define LED_PIN 13      // (Arduino is 13, Teensy is 11, Teensy++ is 6)
-bool blinkState = false;
+#define LED_ALIVE_PIN 13      // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+bool led_alive_state = false;
 
-// MPU control/status vars
-bool dmpReady = false;  // set true if DMP init was successful
-uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
-uint8_t devStatus;      // return status after each device operation (0 = success, !0 = error)
-uint16_t packetSize;    // expected DMP packet size (default is 42 bytes)
-uint16_t fifoCount;     // count of all bytes currently in FIFO
-uint8_t fifoBuffer[64]; // FIFO storage buffer
-
-// orientation/motion vars
-Quaternion q;        // [w, x, y, z]         quaternion container
-VectorInt16 aa;      // [x, y, z]            accel sensor measurements
-VectorInt16 gy;      // [x, y, z]            gyro sensor measurements
-VectorInt16 aaReal;  // [x, y, z]            gravity-free accel sensor measurements
-VectorFloat gravity; // [x, y, z]            gravity vector
-float euler[3];      // [psi, theta, phi]    Euler angle container
-float ypr[3];        // [yaw, pitch, roll]   yaw/pitch/roll container and gravity vector
-
-MPU6050 mpu;
-
-volatile bool mpuInterrupt = false; // indicates whether MPU interrupt pin has gone high
-void dmpDataReady()
-{
-    mpuInterrupt = true;
-}
-
-#define I2CDEV_IMPLEMENTATION I2CDEV_BUILTIN_FASTWIRE
-
-void setup_mpu6050()
-{
-    // join I2C bus (I2Cdev library doesn't do this automatically)
-#if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
-    Wire.begin();
-    Wire.setClock(400000); // 400kHz I2C clock. Comment this line if having compilation difficulties
-#elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
-    Serial.println("FASTWIRE");
-    Fastwire::setup(400, true);
-#endif
-
-    // initialize serial communication
-    // (115200 chosen because it is required for Teapot Demo output, but it's
-    // really up to you depending on your project)
-    Serial.begin(115200);
-    // while (!Serial)
-    //     ; // wait for Leonardo enumeration, others continue immediately
-
-    // NOTE: 8MHz or slower host processors, like the Teensy @ 3.3V or Arduino
-    // Pro Mini running at 3.3V, cannot handle this baud rate reliably due to
-    // the baud timing being too misaligned with processor ticks. You must use
-    // 38400 or slower in these cases, or use some kind of external separate
-    // crystal solution for the UART timer.
-
-    // initialize device
-    Serial.println(F("Initializing I2C devices..."));
-    mpu.initialize();
-    pinMode(INTERRUPT_PIN, INPUT);
-
-    // verify connection
-    Serial.println(F("Testing device connections..."));
-    Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
-
-    // load and configure the DMP
-    Serial.println(F("Initializing DMP..."));
-    devStatus = mpu.dmpInitialize();
-
-    // supply your own gyro offsets here, scaled for min sensitivity
-    mpu.setXGyroOffset(220);
-    mpu.setYGyroOffset(76);
-    mpu.setZGyroOffset(-85);
-    mpu.setZAccelOffset(1788); // 1688 factory default for my test chip
-
-    // make sure it worked (returns 0 if so)
-    if (devStatus == 0)
-    {
-        // Calibration Time: generate offsets and calibrate our MPU6050
-        mpu.CalibrateAccel(6);
-        mpu.CalibrateGyro(6);
-        mpu.PrintActiveOffsets();
-        // turn on the DMP, now that it's ready
-        Serial.println(F("Enabling DMP..."));
-        mpu.setDMPEnabled(true);
-
-        // enable Arduino interrupt detection
-        Serial.print(F("Enabling interrupt detection (Arduino external interrupt "));
-        Serial.print(digitalPinToInterrupt(INTERRUPT_PIN));
-        Serial.println(F(")..."));
-        attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), dmpDataReady, RISING);
-        mpuIntStatus = mpu.getIntStatus();
-
-        // set our DMP Ready flag so the main loop() function knows it's okay to use it
-        Serial.println(F("DMP ready! Waiting for first interrupt..."));
-        dmpReady = true;
-
-        // get expected DMP packet size for later comparison
-        packetSize = mpu.dmpGetFIFOPacketSize();
-    }
-    else
-    {
-        // ERROR!
-        // 1 = initial memory load failed
-        // 2 = DMP configuration updates failed
-        // (if it's going to break, usually the code will be 1)
-        Serial.print(F("DMP Initialization failed (code "));
-        Serial.print(devStatus);
-        Serial.println(F(")"));
-    }
-}
 void setup()
 {
-    pinMode(LED_PIN, OUTPUT);
+    pinMode(LED_ALIVE_PIN, OUTPUT);
     pinMode(LED_FORWARD_PIN, OUTPUT);
     pinMode(LED_BACKWARDS_PIN, OUTPUT);
     pinMode(THRESHOLD_STEP_BTN_PIN, INPUT_PULLUP);
@@ -195,12 +88,129 @@ void setup()
     delay(500);
 }
 
+MPU6050 mpu;
+
+void setup_mpu6050()
+{
+    while (!mpu.begin(MPU6050_SCALE_2000DPS, MPU6050_RANGE_16G))
+    {
+        Serial.println("Could not find a valid MPU6050 sensor, check wiring!");
+        delay(500);
+    }
+
+    mpu.setAccelPowerOnDelay(MPU6050_DELAY_3MS);
+
+    mpu.setIntFreeFallEnabled(false);
+    mpu.setIntZeroMotionEnabled(false);
+    mpu.setIntMotionEnabled(false);
+
+    mpu.setDHPFMode(MPU6050_DHPF_5HZ);
+
+    mpu.setMotionDetectionThreshold(4);
+    mpu.setMotionDetectionDuration(5);
+
+    mpu.setZeroMotionDetectionThreshold(4);
+    mpu.setZeroMotionDetectionDuration(2);
+
+    Serial.println();
+
+    Serial.print(" * Sleep Mode:                ");
+    Serial.println(mpu.getSleepEnabled() ? "Enabled" : "Disabled");
+
+    Serial.print(" * Motion Interrupt:     ");
+    Serial.println(mpu.getIntMotionEnabled() ? "Enabled" : "Disabled");
+
+    Serial.print(" * Zero Motion Interrupt:     ");
+    Serial.println(mpu.getIntZeroMotionEnabled() ? "Enabled" : "Disabled");
+
+    Serial.print(" * Free Fall Interrupt:       ");
+    Serial.println(mpu.getIntFreeFallEnabled() ? "Enabled" : "Disabled");
+
+    Serial.print(" * Motion Threshold:          ");
+    Serial.println(mpu.getMotionDetectionThreshold());
+
+    Serial.print(" * Motion Duration:           ");
+    Serial.println(mpu.getMotionDetectionDuration());
+
+    Serial.print(" * Zero Motion Threshold:     ");
+    Serial.println(mpu.getZeroMotionDetectionThreshold());
+
+    Serial.print(" * Zero Motion Duration:      ");
+    Serial.println(mpu.getZeroMotionDetectionDuration());
+
+    Serial.print(" * Clock Source:              ");
+    switch (mpu.getClockSource())
+    {
+    case MPU6050_CLOCK_KEEP_RESET:
+        Serial.println("Stops the clock and keeps the timing generator in reset");
+        break;
+    case MPU6050_CLOCK_EXTERNAL_19MHZ:
+        Serial.println("PLL with external 19.2MHz reference");
+        break;
+    case MPU6050_CLOCK_EXTERNAL_32KHZ:
+        Serial.println("PLL with external 32.768kHz reference");
+        break;
+    case MPU6050_CLOCK_PLL_ZGYRO:
+        Serial.println("PLL with Z axis gyroscope reference");
+        break;
+    case MPU6050_CLOCK_PLL_YGYRO:
+        Serial.println("PLL with Y axis gyroscope reference");
+        break;
+    case MPU6050_CLOCK_PLL_XGYRO:
+        Serial.println("PLL with X axis gyroscope reference");
+        break;
+    case MPU6050_CLOCK_INTERNAL_8MHZ:
+        Serial.println("Internal 8MHz oscillator");
+        break;
+    }
+
+    Serial.print(" * Accelerometer:             ");
+    switch (mpu.getRange())
+    {
+    case MPU6050_RANGE_16G:
+        Serial.println("+/- 16 g");
+        break;
+    case MPU6050_RANGE_8G:
+        Serial.println("+/- 8 g");
+        break;
+    case MPU6050_RANGE_4G:
+        Serial.println("+/- 4 g");
+        break;
+    case MPU6050_RANGE_2G:
+        Serial.println("+/- 2 g");
+        break;
+    }
+
+    Serial.print(" * Accelerometer offsets:     ");
+    Serial.print(mpu.getAccelOffsetX());
+    Serial.print(" / ");
+    Serial.print(mpu.getAccelOffsetY());
+    Serial.print(" / ");
+    Serial.println(mpu.getAccelOffsetZ());
+
+    Serial.print(" * Accelerometer power delay: ");
+    switch (mpu.getAccelPowerOnDelay())
+    {
+    case MPU6050_DELAY_3MS:
+        Serial.println("3ms");
+        break;
+    case MPU6050_DELAY_2MS:
+        Serial.println("2ms");
+        break;
+    case MPU6050_DELAY_1MS:
+        Serial.println("1ms");
+        break;
+    case MPU6050_NO_DELAY:
+        Serial.println("0ms");
+        break;
+    }
+
+    Serial.println();
+}
+
 void readaccel()
 {
 }
-
-VectorInt16 aaWorld; // [x, y, z]            world-frame accel sensor measurements
-VectorInt16 prev_world_accel;
 
 int16_t accel_threshold = 50;
 Button thresholdStepBtn(THRESHOLD_STEP_BTN_PIN);
@@ -217,37 +227,20 @@ COROUTINE(accelLEDHandler)
 {
     COROUTINE_LOOP()
     {
-        // int16_t accel_delta = aaWorld.x - prev_world_accel.x;
-        // Serial.print("delta: ");
-        // Serial.print(accel_delta);
-        // Serial.println();
-
-        int16_t acceldelta = aaWorld.x;
-
-        if (acceldelta < 0)
+        Vector rawAccel = mpu.readNormalizeAccel();
+        Activites act = mpu.readActivites();
+        if (rawAccel.XAxis >= 0)
         {
-            acceldelta = aaWorld.x * -1;
+            analogWrite(LED_FORWARD_PIN, (int)rawAccel.XAxis);
+            analogWrite(LED_BACKWARDS_PIN, 0);
+        }
+        else
+        {
+            analogWrite(LED_BACKWARDS_PIN, (int)rawAccel.XAxis * -1);
+            analogWrite(LED_FORWARD_PIN, 0);
         }
 
-        if (acceldelta > 255)
-        {
-            acceldelta = 255;
-        }
-
-        analogWrite(LED_FORWARD_PIN, acceldelta);
-        // else
-        // {
-        //     digitalWrite(LED_FORWARD_PIN, LOW);
-        // }
-
-        // if (accel_delta < 0)
-        // {
-        //     digitalWrite(LED_BACKWARDS_PIN, HIGH);
-        // }
-
-        delay(100);
-
-        // prev_world_accel = aaWorld; // copy
+        COROUTINE_DELAY(50);
     }
 }
 
@@ -263,57 +256,8 @@ void loop()
         2. The car plays break sfx when turned into a L after having moved forward
 
     */
-    // if programming failed, don't try to do anything
-    if (!dmpReady)
-        return;
 
-    // if (mpuInterrupt)
-    // {
-    //     // Serial.println("Data received.");
-    // }
-
-    // read a packet from FIFO
-    if (mpu.dmpGetCurrentFIFOPacket(fifoBuffer))
-    {
-        // Get the Latest packet
-        mpu.dmpGetQuaternion(&q, fifoBuffer);
-        mpu.dmpGetAccel(&aa, fifoBuffer);
-        mpu.dmpGetGravity(&gravity, &q);
-        mpu.dmpGetLinearAccel(&aaReal, &aa, &gravity);
-        mpu.dmpGetLinearAccelInWorld(&aaWorld, &aaReal, &q);
-
-        Serial.print("aworld\t");
-        Serial.print(aaWorld.x);
-        // Serial.print("\t");
-        // Serial.print(aaWorld.y);
-        // Serial.print("\t");
-        // Serial.println(aaWorld.z);
-        Serial.println();
-        // mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-        // Serial.print("ypr\t");
-        // Serial.print(ypr[0] * 180 / M_PI);
-        // Serial.print("\t");
-        // Serial.print(ypr[1] * 180 / M_PI);
-        // Serial.print("\t");
-        // Serial.print(ypr[2] * 180 / M_PI);
-        // digitalWrite(LED_PIN, led
-    }
-
-    // accelLEDHandler.runCoroutine();
-
-    int16_t acceldelta = aaWorld.x;
-
-    if (acceldelta < 0)
-    {
-        acceldelta = aaWorld.x * -1;
-    }
-
-    if (acceldelta > 255)
-    {
-        acceldelta = 255;
-    }
-
-    analogWrite(LED_FORWARD_PIN, acceldelta);
+    accelLEDHandler.runCoroutine();
 
     // thresholdStepBtn.update();
     // if (thresholdStepBtn.transitioned_to(LOW))
@@ -323,8 +267,7 @@ void loop()
 
     // mpuInterrupt = false;
 
+    led_alive_state = !led_alive_state;
+    digitalWrite(LED_ALIVE_PIN, led_alive_state);
     delay(100);
-
-    blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);
 }

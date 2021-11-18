@@ -80,13 +80,15 @@ Button start_btn(START_PIN);
 
 void setup()
 {
+    Serial.begin(115200);
+
     pinMode(LED_ALIVE_PIN, OUTPUT);
     pinMode(LED_FORWARD_PIN, OUTPUT);
     pinMode(LED_BACKWARDS_PIN, OUTPUT);
     pinMode(THRESHOLD_STEP_BTN_PIN, INPUT_PULLUP);
 
     pinMode(LEDS_FRONT, OUTPUT);
-    pinMode(START_PIN, INPUT);
+    pinMode(START_PIN, INPUT_PULLUP);
     pinMode(LEDS_TOP_BLUE, OUTPUT);
     pinMode(LEDS_TOP_RED, OUTPUT);
 
@@ -95,6 +97,8 @@ void setup()
     setup_mpu6050();
 
     delay(500);
+
+    car_state = CarState::RUNNING;
 }
 
 MPU6050 mpu;
@@ -221,7 +225,7 @@ void readaccel()
 {
 }
 
-float accel_threshold = 0.5;
+float accel_threshold = 1.5;
 Button thresholdStepBtn(THRESHOLD_STEP_BTN_PIN);
 
 void accel_threshold_step()
@@ -280,9 +284,14 @@ void on_wake()
 }
 void go_to_sleep()
 {
+    Serial.println("Going to sleep..");
+    Serial.flush();
+    delay(10);
 
     set_sleep_mode(SLEEP_MODE_PWR_DOWN);
     sleep_enable();
+
+    attachInterrupt(digitalPinToInterrupt(START_PIN), on_wake, LOW);
 
     // Do not interrupt before we go to sleep, or the
     // ISR will detach interrupts and we won't wake.
@@ -315,8 +324,10 @@ void loop()
         if (time - last_move_timestamp >= TURN_OFF_DELAY)
         {
             car_state = CarState::OFF;
-            digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
-            digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
+
+            digitalWrite(LEDS_FRONT, LOW);
+            digitalWrite(LEDS_TOP_BLUE, LOW);
+            digitalWrite(LEDS_TOP_RED, LOW);
 
             go_to_sleep();
         }

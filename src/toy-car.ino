@@ -9,6 +9,7 @@ using namespace ace_routine;
 #include <math.h>
 #include <Wire.h>
 #include <MPU6050.h>
+#include <avr/sleep.h>
 
 typedef unsigned long time_t;
 
@@ -58,7 +59,6 @@ enum CarState
 
 const unsigned long TURN_OFF_DELAY = 5000; // ms
 
-const uint8_t START_PIN = 0x0;
 const uint8_t FRONT_LIGHTS_PINS[] = {0x1, 0x2};
 
 CarState car_state = CarState::OFF;
@@ -69,9 +69,11 @@ unsigned long last_move_timestamp = 0;
 #define LED_BACKWARDS_PIN 5
 #define THRESHOLD_STEP_BTN_PIN 4
 
-#define INTERRUPT_PIN 2 // use pin 2 on Arduino Uno & most boards
-#define LED_ALIVE_PIN 13      // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+#define START_PIN 2      // use pin 2 on Arduino Uno & most boards
+#define LED_ALIVE_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 bool led_alive_state = false;
+
+Button start_btn(START_PIN);
 
 void setup()
 {
@@ -212,31 +214,41 @@ void readaccel()
 {
 }
 
-int16_t accel_threshold = 50;
+float accel_threshold = 0.5;
 Button thresholdStepBtn(THRESHOLD_STEP_BTN_PIN);
 
 void accel_threshold_step()
 {
-    accel_threshold += 50;
+    accel_threshold += 0.5;
     Serial.print("Accel threshold: ");
     Serial.print(accel_threshold, DEC);
     Serial.println();
 }
 
+Vector curAccel;
+Activites curActvt;
+
 COROUTINE(accelLEDHandler)
 {
     COROUTINE_LOOP()
     {
-        Vector rawAccel = mpu.readNormalizeAccel();
-        Activites act = mpu.readActivites();
-        if (rawAccel.XAxis >= 0)
+        curAccel = mpu.readNormalizeAccel();
+        curActvt = mpu.readActivites();
+
+        if (curActvt.isActivity)
         {
-            analogWrite(LED_FORWARD_PIN, (int)rawAccel.XAxis);
+            last_move_timestamp = millis();
+            Serial.println("Moved");
+        }
+
+        if (curAccel.XAxis >= 0)
+        {
+            analogWrite(LED_FORWARD_PIN, (int)curAccel.XAxis);
             analogWrite(LED_BACKWARDS_PIN, 0);
         }
         else
         {
-            analogWrite(LED_BACKWARDS_PIN, (int)rawAccel.XAxis * -1);
+            analogWrite(LED_BACKWARDS_PIN, (int)curAccel.XAxis * -1);
             analogWrite(LED_FORWARD_PIN, 0);
         }
 
@@ -244,28 +256,46 @@ COROUTINE(accelLEDHandler)
     }
 }
 
+void on_wake()
+{
+}
+void go_to_sleep()
+{
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    attachInterrupt(digitalPinToInterrupt(START_PIN), on_wake, LOW);
+
+    sleep_mode();
+
+    // first thing after waking from sleep:
+    detachInterrupt(digitalPinToInterrupt(START_PIN));
+
+    start_car();
+}
+
+void start_car()
+{
+    digitalWrite(FRONT_LIGHTS_PINS[0], HIGH);
+    digitalWrite(FRONT_LIGHTS_PINS[1], HIGH);
+    car_state = CarState::RUNNING;
+    // TODO: play sfx
+}
+
 void loop()
 {
-    /*
-    -- START CAR --
-        1. The car turns on lights and plays engine rev sfx when held in hand
-        2. The car then turns off lights after 5 sec if it hasn't moved or isn't being held anymore
+    if (car_state == CarState::RUNNING)
+    {
+        time_t time = millis();
+        if (time - last_move_timestamp >= TURN_OFF_DELAY)
+        {
+            car_state = CarState::OFF;
+            digitalWrite(FRONT_LIGHTS_PINS[0], LOW);
+            digitalWrite(FRONT_LIGHTS_PINS[1], LOW);
 
-    -- DRIVE CAR --
-        1. The car plays dj gas sfx when being pushed forward
-        2. The car plays break sfx when turned into a L after having moved forward
+            go_to_sleep();
+        }
 
-    */
-
-    accelLEDHandler.runCoroutine();
-
-    // thresholdStepBtn.update();
-    // if (thresholdStepBtn.transitioned_to(LOW))
-    // {
-    //     accel_threshold_step();
-    // }
-
-    // mpuInterrupt = false;
+        accelLEDHandler.runCoroutine();
+    }
 
     led_alive_state = !led_alive_state;
     digitalWrite(LED_ALIVE_PIN, led_alive_state);

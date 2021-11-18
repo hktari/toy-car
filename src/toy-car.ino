@@ -59,11 +59,14 @@ enum CarState
 
 const unsigned long TURN_OFF_DELAY = 5000; // ms
 
-const uint8_t FRONT_LIGHTS_PINS[] = {0x1, 0x2};
-
 CarState car_state = CarState::OFF;
 
 unsigned long last_move_timestamp = 0;
+
+const int LEDS_TOP_BLINK_SPEED = 250;
+#define LEDS_TOP_BLUE 8
+#define LEDS_TOP_RED 7
+#define LEDS_FRONT 6
 
 #define LED_FORWARD_PIN 3
 #define LED_BACKWARDS_PIN 5
@@ -82,8 +85,12 @@ void setup()
     pinMode(LED_BACKWARDS_PIN, OUTPUT);
     pinMode(THRESHOLD_STEP_BTN_PIN, INPUT_PULLUP);
 
-    digitalWrite(LED_FORWARD_PIN, HIGH);
-    digitalWrite(LED_BACKWARDS_PIN, HIGH);
+    pinMode(LEDS_FRONT, OUTPUT);
+    pinMode(START_PIN, INPUT);
+    pinMode(LEDS_TOP_BLUE, OUTPUT);
+    pinMode(LEDS_TOP_RED, OUTPUT);
+
+    digitalWrite(LEDS_FRONT, LOW);
 
     setup_mpu6050();
 
@@ -256,15 +263,36 @@ COROUTINE(accelLEDHandler)
     }
 }
 
+COROUTINE(topLEDHandler)
+{
+    COROUTINE_LOOP()
+    {
+        analogWrite(LEDS_TOP_BLUE, HIGH);
+        analogWrite(LEDS_TOP_RED, LOW);
+        COROUTINE_DELAY(LEDS_TOP_BLINK_SPEED);
+        analogWrite(LEDS_TOP_BLUE, LOW);
+        analogWrite(LEDS_TOP_RED, HIGH);
+    }
+}
+
 void on_wake()
 {
 }
 void go_to_sleep()
 {
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    attachInterrupt(digitalPinToInterrupt(START_PIN), on_wake, LOW);
 
-    sleep_mode();
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    sleep_enable();
+
+    // Do not interrupt before we go to sleep, or the
+    // ISR will detach interrupts and we won't wake.
+    noInterrupts();
+
+    // We are guaranteed that the sleep_cpu call will be done
+    // as the processor executes the next instruction after
+    // interrupts are turned on.
+    interrupts(); // one cycle
+    sleep_cpu();  // one cycle
 
     // first thing after waking from sleep:
     detachInterrupt(digitalPinToInterrupt(START_PIN));
@@ -274,8 +302,7 @@ void go_to_sleep()
 
 void start_car()
 {
-    digitalWrite(FRONT_LIGHTS_PINS[0], HIGH);
-    digitalWrite(FRONT_LIGHTS_PINS[1], HIGH);
+    digitalWrite(LEDS_FRONT, HIGH);
     car_state = CarState::RUNNING;
     // TODO: play sfx
 }
@@ -295,6 +322,7 @@ void loop()
         }
 
         accelLEDHandler.runCoroutine();
+        topLEDHandler.runCoroutine();
     }
 
     led_alive_state = !led_alive_state;

@@ -52,16 +52,23 @@ private:
 
 enum CarState
 {
-    OFF,
-    RUNNING,
-    MOVING
+    OFF = 0,
+    STARTING_UP = 1,
+    RUNNING = 2,
+    MOVING = 3
 };
 
+const double IS_MOVING_THRESHOLD = 0.8;
+
+const unsigned long MOVING_STOPPED_DELAY = 2500;
 const unsigned long TURN_OFF_DELAY = 5000; // ms
 
 CarState car_state = CarState::OFF;
 
+unsigned long last_activity_timestamp = 0;
 unsigned long last_move_timestamp = 0;
+
+#define BUZZER_PIN 9
 
 const int LEDS_TOP_BLINK_SPEED = 250;
 #define LEDS_TOP_BLUE 8
@@ -75,31 +82,9 @@ const int LEDS_TOP_BLINK_SPEED = 250;
 #define START_PIN 2      // use pin 2 on Arduino Uno & most boards
 #define LED_ALIVE_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 bool led_alive_state = false;
+signed int start_car_sfx_freq = 0;
 
 Button start_btn(START_PIN);
-
-void setup()
-{
-    Serial.begin(115200);
-
-    pinMode(LED_ALIVE_PIN, OUTPUT);
-    pinMode(LED_FORWARD_PIN, OUTPUT);
-    pinMode(LED_BACKWARDS_PIN, OUTPUT);
-    pinMode(THRESHOLD_STEP_BTN_PIN, INPUT_PULLUP);
-
-    pinMode(LEDS_FRONT, OUTPUT);
-    pinMode(START_PIN, INPUT_PULLUP);
-    pinMode(LEDS_TOP_BLUE, OUTPUT);
-    pinMode(LEDS_TOP_RED, OUTPUT);
-
-    digitalWrite(LEDS_FRONT, LOW);
-
-    setup_mpu6050();
-
-    delay(500);
-
-    car_state = CarState::RUNNING;
-}
 
 MPU6050 mpu;
 
@@ -225,6 +210,38 @@ void readaccel()
 {
 }
 
+void handle_transitions(CarState prev_state, CarState cur_state)
+{
+}
+
+void set_state(CarState state)
+{
+    if (state == car_state)
+    {
+        return;
+    }
+
+    handle_transitions(car_state, state);
+
+    car_state = state;
+
+    String s = "IDLE";
+    if (state == CarState::STARTING_UP)
+    {
+        s = "Starting up";
+    }
+    else if (state == CarState::RUNNING)
+    {
+        s = "Running";
+    }
+    else if (state == CarState::MOVING)
+    {
+        s = "MOVING";
+    }
+
+    Serial.println(s);
+}
+
 float accel_threshold = 1.5;
 Button thresholdStepBtn(THRESHOLD_STEP_BTN_PIN);
 
@@ -239,7 +256,25 @@ void accel_threshold_step()
 Vector curAccel;
 Activites curActvt;
 
-COROUTINE(accelLEDHandler)
+COROUTINE(sfxStartCar)
+{
+    COROUTINE_LOOP()
+    {
+        if (start_car_sfx_freq >= 0)
+        {
+            Serial.println("BUZZING");
+            tone(BUZZER_PIN, start_car_sfx_freq);
+            start_car_sfx_freq -= 100;
+            COROUTINE_DELAY(75);
+        }
+        else
+        {
+            set_state(CarState::RUNNING);
+        }
+    }
+}
+
+COROUTINE(readAccel)
 {
     COROUTINE_LOOP()
     {
@@ -248,10 +283,16 @@ COROUTINE(accelLEDHandler)
 
         if (curActvt.isActivity)
         {
-            last_move_timestamp = millis();
-            Serial.println("Moved");
+            last_activity_timestamp = millis();
         }
 
+        COROUTINE_DELAY(50);
+    }
+}
+COROUTINE(accelLEDHandler)
+{
+    COROUTINE_LOOP()
+    {
         if (curAccel.XAxis >= 0)
         {
             analogWrite(LED_FORWARD_PIN, (int)curAccel.XAxis);
@@ -276,6 +317,17 @@ COROUTINE(topLEDHandler)
         COROUTINE_DELAY(LEDS_TOP_BLINK_SPEED);
         analogWrite(LEDS_TOP_BLUE, LOW);
         analogWrite(LEDS_TOP_RED, HIGH);
+    }
+}
+
+COROUTINE(sfxHandler)
+{
+    COROUTINE_LOOP()
+    {
+        tone(BUZZER_PIN, 1200);
+        COROUTINE_DELAY(car_state == CarState::MOVING ? 500 : 1000);
+        tone(BUZZER_PIN, 600);
+        COROUTINE_DELAY(car_state == CarState::MOVING ? 500 : 1000);
     }
 }
 
@@ -312,28 +364,94 @@ void go_to_sleep()
 void start_car()
 {
     digitalWrite(LEDS_FRONT, HIGH);
-    car_state = CarState::RUNNING;
-    // TODO: play sfx
+    digitalWrite(LEDS_TOP_BLUE, HIGH);
+    digitalWrite(LEDS_TOP_RED, HIGH);
+
+    set_state(CarState::STARTING_UP);
+
+    start_car_sfx_freq = 800;
+    while (start_car_sfx_freq <= 1600)
+    {
+        tone(BUZZER_PIN, start_car_sfx_freq);
+        start_car_sfx_freq += 20;
+        delay(10);
+    }
+
+    while (start_car_sfx_freq >= 800)
+    {
+        tone(BUZZER_PIN, start_car_sfx_freq);
+        start_car_sfx_freq -= 8;
+        delay(10);
+    }
+
+    set_state(CarState::RUNNING);
+}
+
+void setup()
+{
+    Serial.begin(115200);
+
+    pinMode(BUZZER_PIN, OUTPUT);
+
+    pinMode(LED_ALIVE_PIN, OUTPUT);
+    pinMode(LED_FORWARD_PIN, OUTPUT);
+    pinMode(LED_BACKWARDS_PIN, OUTPUT);
+    pinMode(THRESHOLD_STEP_BTN_PIN, INPUT_PULLUP);
+
+    pinMode(LEDS_FRONT, OUTPUT);
+    pinMode(START_PIN, INPUT_PULLUP);
+    pinMode(LEDS_TOP_BLUE, OUTPUT);
+    pinMode(LEDS_TOP_RED, OUTPUT);
+
+    digitalWrite(LEDS_FRONT, LOW);
+
+    setup_mpu6050();
+
+    delay(500);
+
+    start_car();
 }
 
 void loop()
 {
-    if (car_state == CarState::RUNNING)
+    readAccel.runCoroutine();
+
+    if (car_state == CarState::STARTING_UP)
+    {
+        sfxStartCar.runCoroutine();
+    }
+
+    if (car_state >= CarState::RUNNING)
     {
         time_t time = millis();
-        if (time - last_move_timestamp >= TURN_OFF_DELAY)
+        if (time - last_activity_timestamp >= TURN_OFF_DELAY)
         {
-            car_state = CarState::OFF;
+            set_state(CarState::OFF);
 
             digitalWrite(LEDS_FRONT, LOW);
             digitalWrite(LEDS_TOP_BLUE, LOW);
             digitalWrite(LEDS_TOP_RED, LOW);
+            noTone(BUZZER_PIN);
 
             go_to_sleep();
         }
-
+        else if (fabs(curAccel.XAxis) > IS_MOVING_THRESHOLD)
+        {
+            last_move_timestamp = time;
+            set_state(CarState::MOVING);
+        }
         accelLEDHandler.runCoroutine();
         topLEDHandler.runCoroutine();
+
+        sfxHandler.runCoroutine();
+
+        if (car_state == CarState::MOVING)
+        {
+            if (time - last_move_timestamp >= MOVING_STOPPED_DELAY)
+            {
+                set_state(CarState::RUNNING);
+            }
+        }
     }
 
     led_alive_state = !led_alive_state;

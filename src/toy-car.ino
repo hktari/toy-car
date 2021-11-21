@@ -320,14 +320,25 @@ COROUTINE(topLEDHandler)
     }
 }
 
-COROUTINE(sfxHandler)
+COROUTINE(sfxMoving)
 {
     COROUTINE_LOOP()
     {
         tone(BUZZER_PIN, 1200);
-        COROUTINE_DELAY(car_state == CarState::MOVING ? 500 : 1000);
+        COROUTINE_DELAY(500);
         tone(BUZZER_PIN, 600);
-        COROUTINE_DELAY(car_state == CarState::MOVING ? 500 : 1000);
+        COROUTINE_DELAY(500);
+    }
+}
+
+COROUTINE(sfxRunning)
+{
+    COROUTINE_LOOP()
+    {
+        tone(BUZZER_PIN, 1200);
+        COROUTINE_DELAY(1000);
+        tone(BUZZER_PIN, 600);
+        COROUTINE_DELAY(1000);
     }
 }
 
@@ -416,11 +427,6 @@ void loop()
 {
     readAccel.runCoroutine();
 
-    if (car_state == CarState::STARTING_UP)
-    {
-        sfxStartCar.runCoroutine();
-    }
-
     if (car_state >= CarState::RUNNING)
     {
         time_t time = millis();
@@ -443,14 +449,17 @@ void loop()
         accelLEDHandler.runCoroutine();
         topLEDHandler.runCoroutine();
 
-        sfxHandler.runCoroutine();
-
         if (car_state == CarState::MOVING)
         {
+            sfxMoving.runCoroutine();
             if (time - last_move_timestamp >= MOVING_STOPPED_DELAY)
             {
                 set_state(CarState::RUNNING);
             }
+        }
+        else
+        {
+            sfxRunning.runCoroutine();
         }
     }
 

@@ -60,7 +60,7 @@ enum CarState
 
 const double IS_MOVING_THRESHOLD = 0.8;
 
-const unsigned long MOVING_STOPPED_DELAY = 2500;
+const unsigned long MOVING_STOPPED_DELAY = 1800;
 const unsigned long TURN_OFF_DELAY = 5000; // ms
 
 CarState car_state = CarState::OFF;
@@ -256,24 +256,6 @@ void accel_threshold_step()
 Vector curAccel;
 Activites curActvt;
 
-COROUTINE(sfxStartCar)
-{
-    COROUTINE_LOOP()
-    {
-        if (start_car_sfx_freq >= 0)
-        {
-            Serial.println("BUZZING");
-            tone(BUZZER_PIN, start_car_sfx_freq);
-            start_car_sfx_freq -= 100;
-            COROUTINE_DELAY(75);
-        }
-        else
-        {
-            set_state(CarState::RUNNING);
-        }
-    }
-}
-
 COROUTINE(readAccel)
 {
     COROUTINE_LOOP()
@@ -336,9 +318,9 @@ COROUTINE(sfxRunning)
     COROUTINE_LOOP()
     {
         tone(BUZZER_PIN, 1200);
-        COROUTINE_DELAY(1000);
+        COROUTINE_DELAY(850);
         tone(BUZZER_PIN, 600);
-        COROUTINE_DELAY(1000);
+        COROUTINE_DELAY(850);
     }
 }
 

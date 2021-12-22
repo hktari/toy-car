@@ -58,9 +58,9 @@ enum CarState
     MOVING = 3
 };
 
-const double IS_MOVING_THRESHOLD = 0.8;
+const double IS_MOVING_THRESHOLD = 1.2;
 
-const unsigned long MOVING_STOPPED_DELAY = 1800;
+const unsigned long MOVING_STOPPED_DELAY = 1200;
 const unsigned long TURN_OFF_DELAY = 5000; // ms
 
 CarState car_state = CarState::OFF;
@@ -439,7 +439,7 @@ void loop()
 
             go_to_sleep();
         }
-        else if (fabs(curAccel.XAxis) > IS_MOVING_THRESHOLD)
+        else if (car_state != CarState::MOVING && fabs(curAccel.XAxis) > IS_MOVING_THRESHOLD)
         {
             last_move_timestamp = time;
             set_state(CarState::MOVING);

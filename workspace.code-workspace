@@ -1,48 +1,35 @@
 {
-    "gtest-adapter.debugConfig":"Debug",
-	"folders": [
+    "folders": [
 		{
 			"path": "."
 		},
 		{
-			"path": "..\\samples\\arduino-mock"
+			"path": "../arduino/3rdparty/Arduino-MPU6050-master"
 		},
 		{
-			"path": "..\\..\\cpp\\cmake-tutorial"
+			"path": "../../Arduino/libraries/Fastwire"
+		},
+		{
+			"path": "../arduino/playground"
 		}
 	],
-	"settings": {
-		"editor.tokenColorCustomizations": {
-			"textMateRules": [
-				{
-					"scope": "googletest.failed",
-					"settings": {
-						"foreground": "#f00"
-					}
-				},
-				{
-					"scope": "googletest.passed",
-					"settings": {
-						"foreground": "#0f0"
-					}
-				},
-				{
-					"scope": "googletest.run",
-					"settings": {
-						"foreground": "#0f0"
-					}
-				}
-			]
-		},
-		"gtest-adapter.debugTitle": "debug-test",
-		"gtest-adapter.mainConfig": "debug-test",
-		"files.associations": {
-			"array": "cpp",
-			"*.tcc": "cpp",
-			"random": "cpp",
-			"numeric": "cpp",
-			"ratio": "cpp",
-			"utility": "cpp"
-		}
-	}
+    "settings": {
+        "files.associations": {
+            "*.tpp": "cpp",
+            "chrono": "cpp",
+            "random": "cpp",
+            "limits": "cpp",
+            "array": "cpp",
+            "deque": "cpp",
+            "forward_list": "cpp",
+            "list": "cpp",
+            "string": "cpp",
+            "unordered_map": "cpp",
+            "unordered_set": "cpp",
+            "vector": "cpp",
+            "string_view": "cpp",
+            "initializer_list": "cpp",
+            "regex": "cpp"
+        }
+    }
 }

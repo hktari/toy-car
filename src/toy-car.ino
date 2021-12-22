@@ -74,9 +74,13 @@ const int LEDS_TOP_BLINK_SPEED = 250;
 #define LEDS_TOP_BLUE 8
 #define LEDS_TOP_RED 7
 #define LEDS_FRONT 6
+#define LEDS_BACK 5
 
 #define LED_FORWARD_PIN 3
 #define LED_BACKWARDS_PIN 5
+
+
+
 #define THRESHOLD_STEP_BTN_PIN 4
 
 #define START_PIN 2      // use pin 2 on Arduino Uno & most boards
@@ -290,25 +294,20 @@ COROUTINE(accelLEDHandler)
     }
 }
 
-COROUTINE(topLEDHandler)
-{
-    COROUTINE_LOOP()
-    {
-        analogWrite(LEDS_TOP_BLUE, HIGH);
-        analogWrite(LEDS_TOP_RED, LOW);
-        COROUTINE_DELAY(LEDS_TOP_BLINK_SPEED);
-        analogWrite(LEDS_TOP_BLUE, LOW);
-        analogWrite(LEDS_TOP_RED, HIGH);
-    }
-}
-
 COROUTINE(sfxMoving)
 {
     COROUTINE_LOOP()
     {
+        digitalWrite(LEDS_TOP_BLUE, HIGH);
+        digitalWrite(LEDS_TOP_RED, LOW);
         tone(BUZZER_PIN, 1200);
+        
         COROUTINE_DELAY(500);
+        
+        digitalWrite(LEDS_TOP_BLUE, LOW);
+        digitalWrite(LEDS_TOP_RED, HIGH);
         tone(BUZZER_PIN, 600);
+        
         COROUTINE_DELAY(500);
     }
 }
@@ -317,9 +316,16 @@ COROUTINE(sfxRunning)
 {
     COROUTINE_LOOP()
     {
+        digitalWrite(LEDS_TOP_BLUE, HIGH);
+        digitalWrite(LEDS_TOP_RED, LOW);
         tone(BUZZER_PIN, 1200);
+     
         COROUTINE_DELAY(850);
+        
+        digitalWrite(LEDS_TOP_BLUE, LOW);
+        digitalWrite(LEDS_TOP_RED, HIGH);
         tone(BUZZER_PIN, 600);
+
         COROUTINE_DELAY(850);
     }
 }
@@ -357,6 +363,7 @@ void go_to_sleep()
 void start_car()
 {
     digitalWrite(LEDS_FRONT, HIGH);
+    digitalWrite(LEDS_BACK, HIGH);
     digitalWrite(LEDS_TOP_BLUE, HIGH);
     digitalWrite(LEDS_TOP_RED, HIGH);
 
@@ -386,17 +393,21 @@ void setup()
 
     pinMode(BUZZER_PIN, OUTPUT);
 
-    pinMode(LED_ALIVE_PIN, OUTPUT);
-    pinMode(LED_FORWARD_PIN, OUTPUT);
-    pinMode(LED_BACKWARDS_PIN, OUTPUT);
-    pinMode(THRESHOLD_STEP_BTN_PIN, INPUT_PULLUP);
+    // pinMode(LED_ALIVE_PIN, OUTPUT);
+    // pinMode(LED_FORWARD_PIN, OUTPUT);
+    // pinMode(LED_BACKWARDS_PIN, OUTPUT);
+    // pinMode(THRESHOLD_STEP_BTN_PIN, INPUT_PULLUP);
 
     pinMode(LEDS_FRONT, OUTPUT);
+    pinMode(LEDS_BACK, OUTPUT);
     pinMode(START_PIN, INPUT_PULLUP);
     pinMode(LEDS_TOP_BLUE, OUTPUT);
     pinMode(LEDS_TOP_RED, OUTPUT);
 
     digitalWrite(LEDS_FRONT, LOW);
+    digitalWrite(LEDS_BACK, LOW);
+    digitalWrite(LEDS_TOP_BLUE, LOW);
+    digitalWrite(LEDS_TOP_RED, LOW);
 
     setup_mpu6050();
 
@@ -411,12 +422,15 @@ void loop()
 
     if (car_state >= CarState::RUNNING)
     {
+        // accelLEDHandler.runCoroutine();
+
         time_t time = millis();
         if (time - last_activity_timestamp >= TURN_OFF_DELAY)
         {
             set_state(CarState::OFF);
 
             digitalWrite(LEDS_FRONT, LOW);
+            digitalWrite(LEDS_BACK, LOW);
             digitalWrite(LEDS_TOP_BLUE, LOW);
             digitalWrite(LEDS_TOP_RED, LOW);
             noTone(BUZZER_PIN);
@@ -428,8 +442,6 @@ void loop()
             last_move_timestamp = time;
             set_state(CarState::MOVING);
         }
-        accelLEDHandler.runCoroutine();
-        topLEDHandler.runCoroutine();
 
         if (car_state == CarState::MOVING)
         {

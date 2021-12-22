@@ -272,7 +272,7 @@ COROUTINE(readAccel)
             last_activity_timestamp = millis();
         }
 
-        COROUTINE_DELAY(50);
+        COROUTINE_DELAY(15);
     }
 }
 COROUTINE(accelLEDHandler)
@@ -383,6 +383,8 @@ void start_car()
         start_car_sfx_freq -= 8;
         delay(10);
     }
+
+    last_activity_timestamp = millis(); // prevent sleeping soon after start
 
     set_state(CarState::RUNNING);
 }
